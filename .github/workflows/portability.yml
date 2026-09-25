@@ -44,13 +44,13 @@ jobs:
           GLACE_SHELL_SKIP_SERVICE=1 \
             sh setup/install.sh
           test -f "$tmp/.config/systemd/user/glace-ipc.service"
-          test -f "$tmp/themes/glace-shell/metadata.desktop"
-          test -f "$tmp/themes/glace-shell/config/sddm/main.qml"
+          test -f "$tmp/themes/GlaceShell/metadata.desktop"
+          test -f "$tmp/themes/GlaceShell/config/sddm/main.qml"
           HOME="$tmp" \
           XDG_CONFIG_HOME="$tmp/.config" \
           XDG_DATA_HOME="$tmp/.local/share" \
           SDDM_THEME_ROOT="$tmp/themes" \
           GLACE_SHELL_SKIP_SERVICE=1 \
             sh setup/uninstall.sh
-          test ! -d "$tmp/.config/glace-shell"
-          test ! -d "$tmp/themes/glace-shell"
+          test ! -d "$tmp/.config/GlaceShell"
+          test ! -d "$tmp/themes/GlaceShell"

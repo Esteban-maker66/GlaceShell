@@ -7,7 +7,7 @@ Glacé Shell is a personal dotfiles project released as a demo. Contributions th
 ## How Can I Contribute?
 
 ### 1. Reporting Bugs
-- Check the [Issues tab](https://github.com/Esteban-maker66/glace-shell/issues) to see if the bug has already been reported.
+- Check the [Issues tab](https://github.com/Esteban-maker66/GlaceShell/issues) to see if the bug has already been reported.
 - If not, open a new issue. Include your system specs (Distro, Display Server/Compositor, Qt/SDDM version) and step-by-step instructions to reproduce the behavior.
 - For anything that depends on `glaceBridge`, also paste the output of `systemctl --user status glace-ipc.service` and, if useful, the log from `journalctl --user -u glace-ipc.service`.
 

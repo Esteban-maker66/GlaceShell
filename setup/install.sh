@@ -14,10 +14,10 @@ fi
 
 CONFIG_HOME=${XDG_CONFIG_HOME:-"${HOME}/.config"}
 DATA_HOME=${XDG_DATA_HOME:-"${HOME}/.local/share"}
-INSTALL_ROOT="$CONFIG_HOME/glace-shell"
+INSTALL_ROOT="$CONFIG_HOME/GlaceShell"
 SERVICE_DIR="$CONFIG_HOME/systemd/user"
 SDDM_THEME_ROOT=${SDDM_THEME_ROOT:-"$DATA_HOME/sddm/themes"}
-THEME_DIR="$SDDM_THEME_ROOT/glace-shell"
+THEME_DIR="$SDDM_THEME_ROOT/GlaceShell"
 
 copy_tree() {
     source_dir=$1
@@ -69,4 +69,4 @@ else
 fi
 
 printf '%s\n' "SDDM theme installed in $THEME_DIR"
-printf '%s\n' "Set ThemeDir=$SDDM_THEME_ROOT and Current=glace-shell in the SDDM configuration."
+printf '%s\n' "Set ThemeDir=$SDDM_THEME_ROOT and Current=GlaceShell in the SDDM configuration."

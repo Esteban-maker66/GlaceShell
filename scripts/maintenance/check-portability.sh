@@ -13,7 +13,7 @@ root_home_marker="/$(printf '%s' root)/"
 users_root_marker="/$(printf '%s' Users)/"
 opt_root_marker="/$(printf '%s' opt)/"
 local_root_marker="/$(printf '%s' usr/local)/"
-legacy_theme_marker="/$(printf '%s' usr/share/sddm/themes/glace-shell)/"
+legacy_theme_marker="/$(printf '%s' usr/share/sddm/themes/GlaceShell)/"
 file_url_prefix="file:$(printf '%s' ///)"
 
 # Kernel-provided interfaces and localhost endpoints are valid application

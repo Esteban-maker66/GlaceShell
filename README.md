@@ -3,7 +3,7 @@
 > **A shell for Wayland and KDE Plasma, currently under development (demo)**, with a glassmorphic visual identity built on Qt Quick/QML.
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Portability](https://github.com/Esteban-maker66/glace-shell/actions/workflows/portability.yml/badge.svg)](https://github.com/Esteban-maker66/glace-shell/actions/workflows/portability.yml)
+[![Portability](https://github.com/Esteban-maker66/GlaceShell/actions/workflows/portability.yml/badge.svg)](https://github.com/Esteban-maker66/GlaceShell/actions/workflows/portability.yml)
 ![SDDM Theme](https://img.shields.io/badge/theme-SDDM-2ea3f5.svg)
 ![Qt Quick](https://img.shields.io/badge/Qt-Quick%20%2F%20QML-41cd52.svg)
 ![Status](https://img.shields.io/badge/status-demo-orange.svg)
@@ -86,7 +86,7 @@ The project is developed and validated on **Arch Linux derivatives**. The table 
 
 Common software requirements for all of them: Qt 6 (Quick/QML), Python 3, PipeWire + WirePlumber, and an SDDM theme installed from the distribution's repositories.
 
-If your combination works and is not listed, or if it fails, [open an issue](https://github.com/Esteban-maker66/glace-shell/issues) including the distribution, KDE Plasma version, Qt version, compositor, and SDDM version.
+If your combination works and is not listed, or if it fails, [open an issue](https://github.com/Esteban-maker66/GlaceShell/issues) including the distribution, KDE Plasma version, Qt version, compositor, and SDDM version.
 
 ## Requirements
 
@@ -104,14 +104,14 @@ There is currently no build process: the project is distributed as QML files and
 Clone the repository and run the installer from its root:
 
 ```sh
-git clone https://github.com/Esteban-maker66/glace-shell.git
-cd glace-shell
+git clone https://github.com/Esteban-maker66/GlaceShell.git
+cd GlaceShell
 ./setup/install.sh
 ```
 
 The installer uses the `XDG_CONFIG_HOME` and `XDG_DATA_HOME` variables, so it does not need to know the user's personal directory. If these are customized, the user service manager must receive the same values.
 
-The installation places the user configuration and IPC service in the configuration directory, prepares the theme in the SDDM data directory, and creates `kxkbrc` only if the user does not already have a configuration. In `sddm.conf`, `ThemeDir` must point to the selected themes directory and `Current` must be `glace-shell`. If the distribution uses another theme location, it can be specified without modifying the repository. First set `THEME_PATH` to the chosen path and run:
+The installation places the user configuration and IPC service in the configuration directory, prepares the theme in the SDDM data directory, and creates `kxkbrc` only if the user does not already have a configuration. In `sddm.conf`, `ThemeDir` must point to the selected themes directory and `Current` must be `GlaceShell`. If the distribution uses another theme location, it can be specified without modifying the repository. First set `THEME_PATH` to the chosen path and run:
 
 ```sh
 SDDM_THEME_ROOT="$THEME_PATH" ./setup/install.sh
