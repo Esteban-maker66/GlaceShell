@@ -1,0 +1,31 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# KDE/Dolphin directory metadata, not part of the dotfiles
+.directory
+
+# Wallpapers are a personal collection and weigh ~17 MB. The repository only
+# tracks the compressed default backdrop; everything else stays local.
+# See config/Wallpapers/README.md.
+config/Wallpapers/*
+!config/Wallpapers/README.md
+!config/Wallpapers/default-wallpaper.jpg
+
+# Per-weight static Noto Sans instances (44 MB). The variable NotoSans.ttf
+# already carries Thin to Black, so a clone needs nothing from here. Keep the
+# directory locally if you want the Condensed/SemiCondensed widths.
+# See the Typography section of STYLE.md.
+config/fonts/extra/
+
+# Local secrets and machine-specific overrides
+.env
+.env.*
+*.local
+
+# Editor and OS noise
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store

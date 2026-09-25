@@ -1,0 +1,16 @@
+[Unit]
+Description=GlaceShell local IPC bridge
+After=pipewire.service wireplumber.service
+
+[Service]
+Type=simple
+Environment=XDG_RUNTIME_DIR=%t
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus
+# %E resolves to the user's XDG_CONFIG_HOME at runtime.
+WorkingDirectory=%E/glace-shell
+ExecStart=python3 %E/glace-shell/config/quickshell/modules/glaceBridge.py serve
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

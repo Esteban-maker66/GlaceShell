@@ -1,0 +1,13 @@
+module components
+ClockWidget 1.0 ClockWidget.qml
+TopVolumeBar 1.0 topVolumeBar.qml
+BackgroundShader 1.0 BackgroundShader.qml
+LoginPrompt 1.0 LoginPrompt.qml
+QuickDock 1.0 QuickDock.qml
+BatteryPill 1.0 BatteryPill.qml
+DisplayWeather 1.0 DisplayWeather.qml
+KeyLangBtn 1.0 KeyLangBtn.qml
+WeatherIcon 1.0 WeatherIcon.qml
+VolumeIcon 1.0 VolumeIcon.qml
+GeneralBlur 1.0 GeneralBlur.qml
+Slider 1.0 Slider.qml

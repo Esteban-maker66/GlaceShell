@@ -1,0 +1,13 @@
+[SddmGreeterTheme]
+Name=Glacé Shell
+Description=A modern, glassmorphic personal SDDM theme with real-time wallpaper shader.
+Author=Esteban David
+Copyright=(c) 2026 Esteban David
+License=GPL-3.0-or-later
+Type=sddm-theme
+Version=1.0
+Website=https://github.com/Esteban-maker66/glace-shell
+Screenshot=https://raw.githubusercontent.com/Esteban-maker66/glace-shell/master/docs/screenshots/sddm-greeter.png
+MainScript=config/sddm/main.qml
+ConfigFile=config/sddm/theme.conf
+Theme-Id=glace-shell

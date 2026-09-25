@@ -1,0 +1,56 @@
+name: Portability
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Comprobar rutas portables
+        run: ./scripts/maintenance/check-portability.sh
+      - name: Validar scripts de shell
+        run: |
+          sh -n setup/install.sh
+          sh -n setup/uninstall.sh
+          sh -n scripts/maintenance/check-portability.sh
+      - name: Validar metadatos del tema
+        run: |
+          test -f config/sddm/metadata.desktop
+          grep -qE '^MainScript=' config/sddm/metadata.desktop
+          grep -qE '^[A-Za-z0-9_]+ 1\.0 [A-Za-z0-9_]+\.qml$' config/quickshell/components/qmldir
+      - name: Validar que los componentes referenciados existen
+        run: |
+          status=0
+          while read -r name version file; do
+            if [ ! -f "config/quickshell/components/$file" ]; then
+              echo "qmldir registra $name pero falta components/$file" >&2
+              status=1
+            fi
+          done < <(grep -E '^[A-Za-z0-9_]+ 1\.0 [A-Za-z0-9_]+\.qml$' config/quickshell/components/qmldir)
+          exit "$status"
+      - name: Validar unidad systemd
+        run: systemd-analyze verify config/systemd/user/glace-ipc.service
+      - name: Simular instalación en un HOME temporal
+        run: |
+          tmp=$(mktemp -d)
+          HOME="$tmp" \
+          XDG_CONFIG_HOME="$tmp/.config" \
+          XDG_DATA_HOME="$tmp/.local/share" \
+          SDDM_THEME_ROOT="$tmp/themes" \
+          GLACE_SHELL_SKIP_SERVICE=1 \
+            sh setup/install.sh
+          test -f "$tmp/.config/systemd/user/glace-ipc.service"
+          test -f "$tmp/themes/glace-shell/metadata.desktop"
+          test -f "$tmp/themes/glace-shell/config/sddm/main.qml"
+          HOME="$tmp" \
+          XDG_CONFIG_HOME="$tmp/.config" \
+          XDG_DATA_HOME="$tmp/.local/share" \
+          SDDM_THEME_ROOT="$tmp/themes" \
+          GLACE_SHELL_SKIP_SERVICE=1 \
+            sh setup/uninstall.sh
+          test ! -d "$tmp/.config/glace-shell"
+          test ! -d "$tmp/themes/glace-shell"

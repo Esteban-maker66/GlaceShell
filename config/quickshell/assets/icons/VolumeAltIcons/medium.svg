@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Volumen medio</title>
+  <ellipse cx="20" cy="44" rx="7" ry="6" fill="#1b1b1b"/>
+  <path d="M26 44V16c9 1 14 5 13 14" stroke="#1b1b1b" stroke-width="5" stroke-linecap="round"/>
+  <path d="M45 25c4 4.7 4 9.3 0 14" stroke="#1b1b1b" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M50 19c7 8.7 7 17.3 0 26" stroke="#1b1b1b" stroke-width="4.5" stroke-linecap="round" opacity="0.35"/>
+</svg>
