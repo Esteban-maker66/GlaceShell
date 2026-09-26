@@ -4,5 +4,5 @@
 	</defs>
 	<style>
 	</style>
-	<use id="Capa 1" href="#img1" x="0" y="0"/>
+	<use id="Capa 1" href="#img1" x="0" y="0" opacity="0.85"/>
 </svg>
