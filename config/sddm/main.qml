@@ -13,6 +13,8 @@ Rectangle {
         fadeToLogin.stop();
         clockWidget.visible = true;
         displayWeather.visible = true;
+        spaceHint.visible = true;
+        spaceHint.opacity = 1;
         loginPrompt.visible = true;
         loginPrompt.opacity = 0;
         fadeToLogin.restart();
@@ -24,6 +26,8 @@ Rectangle {
         fadeToMain.stop();
         clockWidget.visible = true;
         displayWeather.visible = true;
+        spaceHint.visible = true;
+        spaceHint.opacity = 0;
         loginPrompt.visible = true;
         clockWidget.opacity = 0;
         displayWeather.opacity = 0;
@@ -65,6 +69,61 @@ Rectangle {
             verticalPosition: 0.2
             dateHorizontalOffset: 0
             dateVerticalOffset: -100
+        }
+
+        Item {
+            id: spaceHint
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 92
+            width: 300
+            height: 20
+            opacity: 1
+            visible: true
+
+            FontLoader {
+                id: spaceHintFont
+                source: Qt.resolvedUrl("../fonts/Estedad-VF.ttf")
+            }
+
+            Image {
+                id: spaceChevron
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                width: 31
+                height: 31
+                source: Qt.resolvedUrl("../quickshell/assets/icons/extraIcons/chevron.svg")
+                sourceSize.width: 31
+                sourceSize.height: 31
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                asynchronous: true
+
+                SequentialAnimation {
+                    id: chevronPulse
+                    loops: Animation.Infinite
+                    running: true
+                    PauseAnimation { duration: 5005 }
+                    PropertyAnimation { target: spaceChevron; property: "scale"; to: 1.3; duration: 1200; easing.type: Easing.OutQuad }
+                    PropertyAnimation { target: spaceChevron; property: "scale"; to: 0.9; duration: 400; easing.type: Easing.InOutQuad }
+                    PropertyAnimation { target: spaceChevron; property: "scale"; to: 1.0; duration: 400; easing.type: Easing.OutCubic }
+                }
+            }
+
+            Text {
+                id: spaceHintLabel
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: spaceChevron.bottom
+                anchors.topMargin: 2
+                text: "Press Space to Unlock"
+                color: "#F3F3F3"
+                opacity: 0.6
+                font.family: spaceHintFont.name
+                font.pixelSize: 15
+                font.weight: Font.Light
+                horizontalAlignment: Text.AlignHCenter
+                renderType: Text.NativeRendering
+            }
         }
 
         GlaceComponent.LoginPrompt {
@@ -157,6 +216,14 @@ Rectangle {
         }
 
         NumberAnimation {
+            target: spaceHint
+            property: "opacity"
+            to: 0
+            duration: 300
+            easing.type: Easing.InOutCubic
+        }
+
+        NumberAnimation {
             target: loginPrompt
             property: "opacity"
             to: 1
@@ -168,6 +235,7 @@ Rectangle {
             if (root.transitionState === "login") {
                 clockWidget.visible = false;
                 displayWeather.visible = false;
+                spaceHint.visible = false;
             }
         }
     }
@@ -193,6 +261,14 @@ Rectangle {
 
         NumberAnimation {
             target: displayWeather
+            property: "opacity"
+            to: 1
+            duration: 300
+            easing.type: Easing.InOutCubic
+        }
+
+        NumberAnimation {
+            target: spaceHint
             property: "opacity"
             to: 1
             duration: 300

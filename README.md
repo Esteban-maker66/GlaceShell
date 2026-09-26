@@ -71,6 +71,7 @@ The current base already contains the SDDM theme, QML components, visual assets,
 - `ESP`/`ENG` language selector for switching between Spanish and English keyboard layouts.
 - Visual quick dock with Bluetooth, Wi-Fi, Ethernet, suspend, restart, and power-off actions. **In the demo these are mockups**: see [limitations](#project-status).
 - Transitions between the main view and the login prompt.
+- A centered `Press Space to Unlock` hint using the shared chevron, which fades out with the weather and clock when the login view opens.
 - Interaction shortcuts: `Enter`/`Space` to show the login, `Esc` to go back, and `Ctrl+Space` to change the language.
 
 ## Compatibility
