@@ -57,7 +57,7 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "Iniciar sesión"
+                text: "Login"
                 color: "#FFFFFF"
                 font.family: promptFont.name
                 font.pixelSize: 19
@@ -68,7 +68,7 @@ Item {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                text: "El acceso se conectará al protocolo de SDDM en una etapa posterior."
+                text: "The access will be connected to the SDDM protocol at a later stage."
                 color: "#efefef"
                 opacity: 0.7
                 font.family: promptBodyFont.name
