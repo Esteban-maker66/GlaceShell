@@ -6,10 +6,12 @@ on:
 
 jobs:
   check-paths:
-    runs-on: ubuntu-latest
+    # Pinned instead of ubuntu-latest: the moving label migrates to Ubuntu 26
+    # on 2026-10-19, which would change the runner under the project.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Comprobar rutas portables
         run: ./scripts/maintenance/check-portability.sh
       - name: Validar scripts de shell
