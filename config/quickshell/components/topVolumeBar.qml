@@ -297,7 +297,7 @@ Item {
             if (wheelDelta === 0)
                 return;
 
-            var step = 0.05;
+            var step = 0.1;
             if (wheel.angleDelta.y !== 0)
                 step *= Math.abs(wheelDelta / 340);
 
