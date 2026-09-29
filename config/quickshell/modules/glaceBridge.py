@@ -80,6 +80,146 @@ def getBattery():
     }
 
 
+def _runNmcli(arguments):
+    return subprocess.run(
+        ['nmcli', '-t', '-e', 'no'] + arguments,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=3
+    ).stdout
+
+
+def _networkDeviceRows():
+    output = _runNmcli(['-f', 'DEVICE,TYPE,STATE', 'device', 'status'])
+    rows = []
+
+    for line in output.splitlines():
+        fields = line.split(':', 2)
+        if len(fields) < 3:
+            continue
+
+        device, device_type, state = fields
+        rows.append({
+            'device': device,
+            'type': device_type,
+            'connected': state.split(' ', 1)[0] == 'connected'
+        })
+
+    return rows
+
+
+def _wifiSignal(device):
+    if not device:
+        return 0
+
+    try:
+        output = _runNmcli([
+            '-f', 'IN-USE,SIGNAL', 'device', 'wifi', 'list',
+            'ifname', device
+        ])
+    except (OSError, subprocess.SubprocessError):
+        return 0
+
+    for line in output.splitlines():
+        fields = line.split(':', 1)
+        if len(fields) != 2 or fields[0].strip().lower() not in ('yes', 'sí', 'si'):
+            continue
+
+        try:
+            return max(0, min(100, int(fields[1])))
+        except ValueError:
+            return 0
+
+    return 0
+
+
+def _networkUnavailable(error=None):
+    state = {
+        'wifi': {
+            'available': False,
+            'connected': False,
+            'enabled': False,
+            'signal': 0,
+            'device': ''
+        },
+        'ethernet': {
+            'available': False,
+            'connected': False,
+            'device': ''
+        },
+        # Bluetooth is intentionally disabled until its control path is tested.
+        'bluetooth': {
+            'available': False,
+            'enabled': False
+        }
+    }
+
+    if error:
+        state['error'] = str(error)
+
+    return state
+
+
+def getNetworkState():
+    try:
+        rows = _networkDeviceRows()
+    except (OSError, subprocess.SubprocessError) as error:
+        return _networkUnavailable(error)
+
+    wifi = next((row for row in rows if row['type'] == 'wifi'), None)
+    ethernet = next((row for row in rows if row['type'] == 'ethernet'), None)
+
+    wifi_enabled = False
+    if wifi:
+        try:
+            radio_state = _runNmcli(['radio', 'wifi']).strip().lower()
+            wifi_enabled = radio_state in ('enabled', 'habilitado', 'activado')
+        except (OSError, subprocess.SubprocessError):
+            wifi_enabled = wifi['connected']
+
+    return {
+        'wifi': {
+            'available': wifi is not None,
+            'connected': bool(wifi and wifi['connected']),
+            'enabled': wifi_enabled,
+            'signal': _wifiSignal(wifi['device']) if wifi else 0,
+            'device': wifi['device'] if wifi else ''
+        },
+        'ethernet': {
+            'available': ethernet is not None,
+            'connected': bool(ethernet and ethernet['connected']),
+            'device': ethernet['device'] if ethernet else ''
+        },
+        'bluetooth': {
+            'available': False,
+            'enabled': False
+        }
+    }
+
+
+def toggleWifi():
+    state = getNetworkState()
+    if not state['wifi']['available']:
+        raise RuntimeError('WiFi device is not available')
+
+    _runNmcli(['radio', 'wifi', 'off' if state['wifi']['enabled'] else 'on'])
+
+
+def toggleEthernet():
+    state = getNetworkState()
+    if not state['ethernet']['available']:
+        raise RuntimeError('Ethernet device is not available')
+
+    device = state['ethernet']['device']
+    _runNmcli([
+        'device',
+        'disconnect' if state['ethernet']['connected'] else 'connect',
+        device
+    ])
+
+
 def setVolume(value):
     value = max(0.0, min(1.0, value))
     subprocess.run(['wpctl', 'set-volume', SINK, f'{value:.4f}'], check=True)
@@ -132,6 +272,8 @@ class GlaceRequestHandler(BaseHTTPRequestHandler):
             self.sendJson(200, getVolume())
         elif path == '/battery':
             self.sendJson(200, getBattery())
+        elif path == '/network':
+            self.sendJson(200, getNetworkState())
         else:
             self.sendJson(404, {'error': 'not found'})
 
@@ -143,15 +285,28 @@ class GlaceRequestHandler(BaseHTTPRequestHandler):
 
             if path == '/set':
                 setVolume(float(payload['value']))
+                response = getVolume()
             elif path == '/mute':
                 setMute(bool(payload['muted']))
+                response = getVolume()
             elif path == '/keyboard':
                 setKeyboardLayout(payload['layout'])
+                response = getVolume()
+            elif path == '/network':
+                action = payload.get('action')
+                if action == 'toggleWifi':
+                    toggleWifi()
+                elif action == 'toggleEthernet':
+                    toggleEthernet()
+                else:
+                    self.sendJson(400, {'error': 'unsupported network action'})
+                    return
+                response = getNetworkState()
             else:
                 self.sendJson(404, {'error': 'not found'})
                 return
 
-            self.sendJson(200, getVolume())
+            self.sendJson(200, response)
         except Exception as error:
             self.sendJson(400, {'error': str(error)})
 
@@ -174,8 +329,11 @@ if __name__ == "__main__":
             setVolume(float(sys.argv[2]))
         elif command == 'mute' and len(sys.argv) == 3:
             setMute(sys.argv[2] == '1')
+        elif command == 'network':
+            print(json.dumps(getNetworkState()))
+            sys.exit(0)
         elif command != 'get':
-            raise ValueError('usage: glaceBridge.py [get|set <0.0-1.0>|mute <0|1>]')
+            raise ValueError('usage: glaceBridge.py [get|set <0.0-1.0>|mute <0|1>|network]')
 
         print(json.dumps(getVolume()))
     except Exception as error:

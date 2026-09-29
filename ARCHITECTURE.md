@@ -10,7 +10,7 @@ The current implementation begins with a high-fidelity, modular SDDM theme writt
 
 QML components resolve fonts, wallpapers and icons relative to their own source files. The theme metadata also uses relative references, and the user service uses `%E` for `XDG_CONFIG_HOME` plus `%t` for the runtime directory instead of embedding a personal or installation path.
 
-When an action needs system access, QML communicates with `config/quickshell/modules/glaceBridge.py` over HTTP on `127.0.0.1`. The bridge uses system tools such as `wpctl` and can delegate keyboard changes to KDE, Hyprland, or X11.
+When an action needs system access, QML communicates with `config/quickshell/modules/glaceBridge.py` over HTTP on `127.0.0.1`. The bridge uses system tools such as `wpctl` and `nmcli` and can delegate keyboard changes to KDE, Hyprland, or X11.
 
 
 ## Main areas
@@ -53,7 +53,7 @@ LICENSE                      # Project license
 
 ## SDDM Architecture
 
-SDDM loads `config/sddm/main.qml` as the greeter entry point. QtQuick/QML renders the interface and its components — such as `LoginPrompt`, `QuickDock`, and the status indicators — while `glace-ipc.service` exposes system information and actions through local IPC. The current service is a user service, so it is available in the desktop session; the pre-login SDDM greeter needs a bridge with a different lifecycle if it requires this data. The following diagram summarizes this separation between the frontend and the backend.
+SDDM loads `config/sddm/main.qml` as the greeter entry point. QtQuick/QML renders the interface and its components — such as `LoginPrompt`, `QuickDock`, and the status indicators — while `glace-ipc.service` exposes system information and actions through local IPC. Power actions are delegated to SDDM's `sddm` context; network state and Wi-Fi/Ethernet toggles use the bridge. The current service is a user service, so it is available in the desktop session; the pre-login SDDM greeter needs a bridge with a different lifecycle for the network controls. The following diagram summarizes this separation between the frontend and the backend.
 
 ```text
 +-------------------------------------------------------+

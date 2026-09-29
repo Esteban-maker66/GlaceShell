@@ -60,6 +60,7 @@ A floating vertical action dock triggered by an animated logo.
 | `ethernetAvailable` | `bool` | `false` | An Ethernet device is reported by the bridge. |
 | `ethernetConnected` | `bool` | `false` | The Ethernet device has an active connection. |
 | `bluetoothFeatureEnabled` | `bool` | `false` | Master switch for the Bluetooth control; disabled during the first integration pass. |
+| `bluetoothAvailable` | `bool` | `false` | A Bluetooth device is reported by the bridge. |
 | `bluetoothEnabled` | `bool` (readonly) | derived | Mirrors `bluetoothFeatureEnabled` for the icon loader. |
 | `wifiBars` | `int` (readonly) | derived | Signal strength as 0-3 bars: `>= 75` is 3, `>= 50` is 2, `>= 25` is 1, else 0. |
 | `wifiIconSource` | `string` (readonly) | derived | Resolves `wifi-<bars>.svg` when enabled and connected, else `wifi-0.svg`. |
