@@ -59,7 +59,7 @@ The current base already contains the SDDM theme, QML components, visual assets,
 - **Purposeful animations:** entry transitions, the dock, the volume bar, and the battery indicator communicate state changes visually.
 - **Customization:** wallpapers, custom fonts, and SVG icons that are easy to integrate into the theme.
 - **Modular architecture:** every visual element is encapsulated as a reusable QML component.
-- **System integration:** reads battery state through `sysfs` via the local bridge, controls volume through PipeWire, and allows changing the keyboard language through a local bridge.
+- **System integration:** reads battery state through `sysfs` via the local bridge, controls volume through PipeWire, reads Wi-Fi/Ethernet state through NetworkManager, and allows changing the keyboard language through a local bridge.
 - **Lightweight design:** the interface is built with Qt Quick/QML and communicates with the system through a local service, without depending on a full desktop application.
 
 ## Features
@@ -69,7 +69,7 @@ The current base already contains the SDDM theme, QML components, visual assets,
 - Volume bar with drag, wheel, mute, and keyboard-shortcut support.
 - Battery indicator with automatic state reading through the local bridge, backed by `/sys/class/power_supply`, on supported devices.
 - `ESP`/`ENG` language selector for switching between Spanish and English keyboard layouts.
-- Visual quick dock with Bluetooth, Wi-Fi, Ethernet, suspend, restart, and power-off actions. **In the demo these are mockups**: see [limitations](#project-status).
+- Visual quick dock with suspend, restart, power-off, Wi-Fi, and Ethernet actions. Bluetooth is intentionally disabled for the first integration pass; see [limitations](#project-status).
 - Transitions between the main view and the login prompt.
 - A centered `Press Space to Unlock` hint using the shared chevron, which fades out with the weather and clock when the login view opens.
 - Interaction shortcuts: `Enter`/`Space` to show the login, `Esc` to go back, and `Ctrl+Space` to change the language.
@@ -94,6 +94,7 @@ If your combination works and is not listed, or if it fails, [open an issue](htt
 - Qt Quick/QML available on the system.
 - Python 3 for the IPC bridge.
 - PipeWire and WirePlumber, with `wpctl`, for volume control.
+- NetworkManager, with `nmcli`, for Wi-Fi and Ethernet state and control.
 - `qdbus6`, `hyprctl`, or `setxkbmap` for changing the keyboard layout.
 - Internet connection for geolocation and weather forecasts.
 - Access to `/sys/class/power_supply` if the battery status is to be displayed.
@@ -171,12 +172,12 @@ Glacé Shell is in an active development stage. The visual structure, system inf
 
 Known limitations of the current demo:
 
-- **The login prompt is a skeleton and leads to a blank screen.** `LoginPrompt` is an empty `Item`. Pressing `Enter` or `Space` fades out the clock and weather, but **no credential fields appear**: the only way out is `Esc`. Do not use the prompt in a real session.
+- **The login prompt is visual only.** Pressing `Enter` or `Space` now slides the clock up and out, diffuses the backdrop with a native Gaussian blur, and reveals a glass panel. It has **no credential fields**: the panel is not wired to SDDM's authentication protocol, and the only way out is `Esc`. Do not use it to log in.
 - **The `Ctrl+Space` shortcut may not activate.** The `Shortcut` that invokes `KeyLangBtn.toggleLanguage()` is outside the focused `FocusScope`. Press the `ESP`/`ENG` button directly until it is moved inside the scope.
 - **Volume does not work on the SDDM screen.** `glace-ipc.service` is a user service, so it is unavailable before login. `topVolumeBar` retries the connection every five seconds, but controlling the volume from the greeter requires a bridge with the greeter's lifecycle, or removing that control from the SDDM view.
 - **Startup shows approximately 1.7 seconds of black screen.** `welcomeOverlay` is an opaque overlay that fades out on entry. This is intentional, but it is worth knowing before assuming that the theme is not starting.
 - **The desktop shell does not exist yet.** Everything beyond the greeter is planned, not implemented.
-- **The dock actions do not execute anything.** Bluetooth, Wi-Fi, and Ethernet only flip a boolean that animates the icon, while suspend, restart, and power-off are a `console.log()`. The only real dock control is opening and closing it. The icons are ready; they still need to be connected.
+- **Network controls require the IPC bridge.** Suspend, restart, and power-off use SDDM's greeter API. Wi-Fi signal and Ethernet state are polled from `glaceBridge`; because `glace-ipc.service` is a user service, these controls remain hidden on the pre-login SDDM screen until a bridge with the greeter's lifecycle is available. Bluetooth is disabled for now.
 - **The IPC bridge does not authenticate.** It listens on `127.0.0.1:18765` without a password, so any local process can change the volume or keyboard layout. This is acceptable for a local bridge, but it is worth knowing.
 
 ## License

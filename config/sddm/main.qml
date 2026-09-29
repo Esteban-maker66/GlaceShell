@@ -7,47 +7,75 @@ Rectangle {
 
     property string transitionState: "main"
 
+    // The "Press Space to Unlock" hint is onboarding: it has done its job the
+    // first time the login view opens, and does not come back afterwards.
+    property bool hintDismissed: false
+
     function showLoginPrompt() {
         transitionState = "login";
         fadeToMain.stop();
-        fadeToLogin.stop();
+        slideOut.stop();
+        blurIn.stop();
+        root.hintDismissed = true;
+
         clockWidget.visible = true;
         displayWeather.visible = true;
         spaceHint.visible = true;
-        spaceHint.opacity = 1;
+        clockWidget.slideOffsetY = 0;
         loginPrompt.visible = true;
         loginPrompt.opacity = 0;
-        fadeToLogin.restart();
+        backdropBlur.amount = 0;
+
+        slideOut.restart();
     }
 
     function showMain() {
         transitionState = "main";
-        fadeToLogin.stop();
+        slideOut.stop();
+        blurIn.stop();
         fadeToMain.stop();
+
+        loginPrompt.visible = true;
         clockWidget.visible = true;
         displayWeather.visible = true;
         spaceHint.visible = true;
-        spaceHint.opacity = 0;
-        loginPrompt.visible = true;
-        clockWidget.opacity = 0;
-        displayWeather.opacity = 0;
+
         fadeToMain.restart();
+    }
+
+    function performPowerAction(action) {
+        if (typeof sddm === "undefined") {
+            console.warn("Power actions require the SDDM greeter context.");
+            return;
+        }
+
+        if (action === "suspend" && sddm.canSuspend) {
+            sddm.suspend();
+        } else if (action === "restart" && sddm.canReboot) {
+            sddm.reboot();
+        } else if (action === "power" && sddm.canPowerOff) {
+            sddm.powerOff();
+        } else {
+            console.warn("The requested power action is not available:", action);
+        }
     }
 
     width: Screen.width
     height: Screen.height
     color: "#0000002a"
 
-    GlaceComponent.BackgroundShader {
-        id: shaderBgRoot
-
-        anchors.fill: parent
-    }
-
     Item {
         id: uiLayer
 
         anchors.fill: parent
+
+        // Inside uiLayer so the login blur covers the wallpaper together with
+        // the widgets. Declared first so the catch-all MouseArea sits above it.
+        GlaceComponent.BackgroundShader {
+            id: shaderBgRoot
+
+            anchors.fill: parent
+        }
 
         // Click anywhere to collapse QuickDock
         MouseArea {
@@ -126,18 +154,17 @@ Rectangle {
             }
         }
 
-        GlaceComponent.LoginPrompt {
-            id: loginPrompt
-            anchors.centerIn: parent
-            visible: false
-        }
-
         GlaceComponent.QuickDock {
             id: quickDock
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.rightMargin: 45
             anchors.bottomMargin: 40
+            bluetoothFeatureEnabled: false
+
+            onSuspendRequested: root.performPowerAction("suspend")
+            onRestartRequested: root.performPowerAction("restart")
+            onPowerRequested: root.performPowerAction("power")
         }
 
         GlaceComponent.BatteryPill {
@@ -165,6 +192,26 @@ Rectangle {
             anchors.leftMargin: 32
             anchors.bottomMargin: 32
         }
+    }
+
+    // Gaussian blur over the whole backdrop: wallpaper plus greeter widgets.
+    // Drawn above uiLayer and opaque, so it covers the sharp version without
+    // uiLayer ever being hidden or its input being taken away.
+    GlaceComponent.GeneralBlur {
+        id: backdropBlur
+
+        anchors.fill: parent
+        target: uiLayer
+        radius: 48
+        amount: 0
+    }
+
+    // Above the blur, so the prompt stays sharp while everything behind it is
+    // diffused.
+    GlaceComponent.LoginPrompt {
+        id: loginPrompt
+        anchors.centerIn: parent
+        visible: false
     }
 
     Rectangle {
@@ -196,14 +243,26 @@ Rectangle {
         }
     }
 
+    // Phase 1, on Enter/Space: the clock flies up and out of the screen while
+    // the rest of the greeter fades with it. Held under a second so the key
+    // press feels answered immediately; the clock's own fade lands well before
+    // the slide does, so nothing is left sitting on screen waiting.
     ParallelAnimation {
-        id: fadeToLogin
+        id: slideOut
+
+        NumberAnimation {
+            target: clockWidget
+            property: "slideOffsetY"
+            to: -root.height
+            duration: 900
+            easing.type: Easing.OutCubic
+        }
 
         NumberAnimation {
             target: clockWidget
             property: "opacity"
             to: 0
-            duration: 300
+            duration: 500
             easing.type: Easing.InOutCubic
         }
 
@@ -211,7 +270,7 @@ Rectangle {
             target: displayWeather
             property: "opacity"
             to: 0
-            duration: 300
+            duration: 450
             easing.type: Easing.InOutCubic
         }
 
@@ -219,16 +278,8 @@ Rectangle {
             target: spaceHint
             property: "opacity"
             to: 0
-            duration: 300
-            easing.type: Easing.InOutCubic
-        }
-
-        NumberAnimation {
-            target: loginPrompt
-            property: "opacity"
-            to: 1
-            duration: 300
-            easing.type: Easing.InOutCubic
+            duration: 380
+            easing.type: Easing.InCubic
         }
 
         onStopped: {
@@ -236,10 +287,34 @@ Rectangle {
                 clockWidget.visible = false;
                 displayWeather.visible = false;
                 spaceHint.visible = false;
+                blurIn.restart();
             }
         }
     }
 
+    // Phase 2: with the clock gone, diffuse what is left and bring the prompt
+    // in on top of the blur.
+    ParallelAnimation {
+        id: blurIn
+
+        NumberAnimation {
+            target: backdropBlur
+            property: "amount"
+            to: 1
+            duration: 450
+            easing.type: Easing.InOutCubic
+        }
+
+        NumberAnimation {
+            target: loginPrompt
+            property: "opacity"
+            to: 1
+            duration: 400
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    // Esc: undo everything slideOut and blurIn did, in one pass.
     ParallelAnimation {
         id: fadeToMain
 
@@ -247,32 +322,48 @@ Rectangle {
             target: loginPrompt
             property: "opacity"
             to: 0
-            duration: 300
+            duration: 280
             easing.type: Easing.InOutCubic
+        }
+
+        NumberAnimation {
+            target: backdropBlur
+            property: "amount"
+            to: 0
+            duration: 450
+            easing.type: Easing.OutCubic
+        }
+
+        NumberAnimation {
+            target: clockWidget
+            property: "slideOffsetY"
+            to: 0
+            duration: 700
+            easing.type: Easing.OutCubic
         }
 
         NumberAnimation {
             target: clockWidget
             property: "opacity"
             to: 1
-            duration: 300
-            easing.type: Easing.InOutCubic
+            duration: 400
+            easing.type: Easing.OutCubic
         }
 
         NumberAnimation {
             target: displayWeather
             property: "opacity"
             to: 1
-            duration: 300
-            easing.type: Easing.InOutCubic
+            duration: 400
+            easing.type: Easing.OutCubic
         }
 
         NumberAnimation {
             target: spaceHint
             property: "opacity"
-            to: 1
-            duration: 300
-            easing.type: Easing.InOutCubic
+            to: root.hintDismissed ? 0 : 1
+            duration: 400
+            easing.type: Easing.OutCubic
         }
 
         onStopped: {
