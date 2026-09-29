@@ -15,9 +15,12 @@ Glacé Shell is a personal dotfiles project released as a demo. Contributions th
 - Feature requests are welcome! Please explain why the feature would be useful and how it fits into the overall glassmorphic design language.
 
 ### 3. Submitting Pull Requests (PRs)
-1. **Fork the repository** and create your branch from `master`:
+1. **Create a branch from `master`, named after the type of change.** See
+   [Branch Naming](#branch-naming) below:
    ```bash
-   git checkout -b feature/my-new-feature
+   git checkout master
+   git pull
+   git checkout -b feat/my-new-feature
    ```
 2. **Make your changes**, following [STYLE.md](STYLE.md) for QML structure, naming and design tokens.
 3. **Run the checks before pushing**:
@@ -47,6 +50,34 @@ style(quickdock): align the action list with the design tokens
 
 Use `feat`, `fix`, `docs`, `style`, `refactor`, `perf` or `chore` as the type.
 Keep the subject in the imperative mood and under 72 characters.
+
+## Branch Naming
+
+Every change lands on its own branch, named `<type>/<topic>`. Create it from an
+up-to-date `master` before you start, and pick the type that matches what the
+change actually is:
+
+| Type | Use it for | Example |
+| :--- | :--- | :--- |
+| `feat/` | New behaviour, components, endpoints | `feat/login-transition` |
+| `fix/` | Correcting something that is already committed | `fix/ci-and-volume` |
+| `docs/` | Documentation only | `docs/readme` |
+| `chore/` | Tooling, CI, dependencies, housekeeping | `chore/ci-workflow` |
+| `refactor/` | Restructuring with no behaviour change | `refactor/bridge-modules` |
+
+A topic that spans two areas is fine (`fix/ci-and-volume`), but keep it one
+branch. Do not mix unrelated changes in a single branch: the commit history is
+the record of how the project evolved, and it stays readable only while each
+branch answers one question.
+
+```bash
+git checkout master
+git pull
+git checkout -b <type>/<topic>
+```
+
+`master` is the default branch, so a merge there is what publishes the change
+and triggers the Portability workflow. Work on a branch, merge through a PR.
 
 ## Code of Conduct
 Be respectful and constructive. Discussions happen in issues and pull requests, so keep them focused on the code and assume good intent.
