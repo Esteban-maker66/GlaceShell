@@ -19,13 +19,14 @@ Rectangle {
         root.hintDismissed = true;
 
         clockWidget.visible = true;
-        displayWeather.visible = true;
+        //displayWeather.visible = true;
         spaceHint.visible = true;
         clockWidget.slideOffsetY = 0;
         loginPrompt.visible = true;
         loginPrompt.opacity = 0;
         backdropBlur.amount = 0;
 
+        blurIn.restart();
         slideOut.restart();
     }
 
@@ -37,7 +38,7 @@ Rectangle {
 
         loginPrompt.visible = true;
         clockWidget.visible = true;
-        displayWeather.visible = true;
+        //displayWeather.visible = true;
         spaceHint.visible = true;
 
         fadeToMain.restart();
@@ -75,6 +76,7 @@ Rectangle {
             id: shaderBgRoot
 
             anchors.fill: parent
+            transformOrigin: Item.Center
         }
 
         // Click anywhere to collapse QuickDock
@@ -165,6 +167,8 @@ Rectangle {
             onSuspendRequested: root.performPowerAction("suspend")
             onRestartRequested: root.performPowerAction("restart")
             onPowerRequested: root.performPowerAction("power")
+
+            z: 12
         }
 
         GlaceComponent.BatteryPill {
@@ -176,14 +180,14 @@ Rectangle {
             useSysfs: true
         }
 
-        GlaceComponent.DisplayWeather {
+        /*GlaceComponent.DisplayWeather {
             id: displayWeather
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.topMargin: 32
             anchors.leftMargin: 46
 
-        }
+        }*/
 
         GlaceComponent.KeyLangBtn {
             id: keyLangButton
@@ -191,6 +195,8 @@ Rectangle {
             anchors.bottom: parent.bottom
             anchors.leftMargin: 32
             anchors.bottomMargin: 32
+
+            z: 12
         }
     }
 
@@ -251,10 +257,18 @@ Rectangle {
         id: slideOut
 
         NumberAnimation {
+            target: shaderBgRoot
+            property: "scale"
+            to: 1.12
+            duration: 900
+            easing.type: Easing.OutCubic
+        }
+
+        NumberAnimation {
             target: clockWidget
             property: "slideOffsetY"
             to: -root.height
-            duration: 900
+            duration: 400
             easing.type: Easing.OutCubic
         }
 
@@ -262,17 +276,17 @@ Rectangle {
             target: clockWidget
             property: "opacity"
             to: 0
-            duration: 500
+            duration: 400
             easing.type: Easing.InOutCubic
         }
 
-        NumberAnimation {
+        /*NumberAnimation {
             target: displayWeather
             property: "opacity"
             to: 0
             duration: 450
             easing.type: Easing.InOutCubic
-        }
+        }*/
 
         NumberAnimation {
             target: spaceHint
@@ -285,9 +299,8 @@ Rectangle {
         onStopped: {
             if (root.transitionState === "login") {
                 clockWidget.visible = false;
-                displayWeather.visible = false;
+                //displayWeather.visible = false;
                 spaceHint.visible = false;
-                blurIn.restart();
             }
         }
     }
@@ -301,7 +314,7 @@ Rectangle {
             target: backdropBlur
             property: "amount"
             to: 1
-            duration: 450
+            duration: 600
             easing.type: Easing.InOutCubic
         }
 
@@ -317,6 +330,14 @@ Rectangle {
     // Esc: undo everything slideOut and blurIn did, in one pass.
     ParallelAnimation {
         id: fadeToMain
+
+        NumberAnimation {
+            target: shaderBgRoot
+            property: "scale"
+            to: 1.0
+            duration: 700
+            easing.type: Easing.OutCubic
+        }
 
         NumberAnimation {
             target: loginPrompt
@@ -338,20 +359,12 @@ Rectangle {
             target: clockWidget
             property: "slideOffsetY"
             to: 0
-            duration: 700
+            duration: 500
             easing.type: Easing.OutCubic
         }
 
         NumberAnimation {
             target: clockWidget
-            property: "opacity"
-            to: 1
-            duration: 400
-            easing.type: Easing.OutCubic
-        }
-
-        NumberAnimation {
-            target: displayWeather
             property: "opacity"
             to: 1
             duration: 400
