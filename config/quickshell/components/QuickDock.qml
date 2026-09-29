@@ -10,12 +10,115 @@ Item {
     property real lastClickTime: 0
 
     readonly property string iconBase: Qt.resolvedUrl("../assets/icons/QuickDockIcons")
+    property string bridgeUrl: "http://127.0.0.1:18765"
+
+    // Network state. Bluetooth is intentionally disabled until its backend
+    // integration is added and tested.
+    property bool wifiAvailable: false
+    property bool wifiConnected: false
+    property bool wifiEnabled: false
+    property int wifiSignal: 0
+    property bool ethernetAvailable: false
+    property bool ethernetConnected: false
+    property bool bluetoothFeatureEnabled: false
+    property bool bluetoothAvailable: false
+    readonly property bool bluetoothEnabled: bluetoothFeatureEnabled && bluetoothAvailable
+    property bool _networkRequestPending: false
+
+    readonly property int wifiBars: wifiSignal >= 75 ? 3
+        : wifiSignal >= 50 ? 2
+        : wifiSignal >= 25 ? 1
+        : 0
+    readonly property string wifiIconSource: wifiEnabled && wifiConnected
+        ? iconBase + "/network/wifi-" + wifiBars + ".svg"
+        : iconBase + "/network/wifi-0.svg"
+
+    signal suspendRequested()
+    signal restartRequested()
+    signal powerRequested()
+
+    function requestNetworkState() {
+        if (_networkRequestPending)
+            return
+
+        _networkRequestPending = true
+        var xhr = new XMLHttpRequest()
+        xhr.open("GET", bridgeUrl + "/network", true)
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
+
+            dockContainer._networkRequestPending = false
+            if (xhr.status === 200)
+                applyNetworkState(xhr.responseText)
+        }
+        xhr.send()
+    }
+
+    function applyNetworkState(output) {
+        try {
+            var state = JSON.parse(output)
+            var wifi = state.wifi || {}
+            var ethernet = state.ethernet || {}
+            var bluetooth = state.bluetooth || {}
+
+            wifiAvailable = wifi.available === true
+            wifiConnected = wifi.connected === true
+            wifiEnabled = wifi.enabled === true
+            wifiSignal = Math.max(0, Math.min(100, parseInt(wifi.signal || 0)))
+
+            ethernetAvailable = ethernet.available === true
+            ethernetConnected = ethernet.connected === true
+            bluetoothAvailable = bluetooth.available === true
+        } catch (error) {
+            console.warn("Could not read the network state:", error)
+        }
+    }
+
+    function sendNetworkCommand(action) {
+        if (_networkRequestPending)
+            return
+
+        _networkRequestPending = true
+        var xhr = new XMLHttpRequest()
+        xhr.open("POST", bridgeUrl + "/network", true)
+        xhr.setRequestHeader("Content-Type", "application/json")
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return
+
+            dockContainer._networkRequestPending = false
+            if (xhr.status === 200)
+                applyNetworkState(xhr.responseText)
+        }
+        xhr.send(JSON.stringify({ "action": action }))
+    }
+
+    function toggleWifi() {
+        if (wifiAvailable)
+            sendNetworkCommand("toggleWifi")
+    }
+
+    function toggleEthernet() {
+        if (ethernetAvailable)
+            sendNetworkCommand("toggleEthernet")
+    }
 
     Timer {
         id: hideTimer
         interval: 450
         onTriggered: dockContainer.animating = false
     }
+
+    Timer {
+        id: networkTimer
+        interval: 5000
+        repeat: true
+        running: true
+        onTriggered: dockContainer.requestNetworkState()
+    }
+
+    Component.onCompleted: requestNetworkState()
 
     function expand() {
         animating = true
@@ -51,13 +154,14 @@ Item {
             width: 42; height: 42
             source: dockContainer.iconBase + "/bt/Bluetooth.qml"
             opacity: 0
-            visible: dockContainer.expanded || dockContainer.animating
+            visible: dockContainer.bluetoothEnabled && (dockContainer.expanded || dockContainer.animating)
             property real entryOffset: 0
-            layer.enabled: true
-            layer.samples: 4
             transform: Translate { y: loaderBT.entryOffset }
 
-            onLoaded: { item.btOn = true }
+            onLoaded: {
+                if (item)
+                    item.btOn = true
+            }
 
             SequentialAnimation {
                 id: entryBT
@@ -99,18 +203,31 @@ Item {
         }
 
         // WiFi
-        Loader {
+        Item {
             id: loaderWifi
             width: 42; height: 42
-            source: dockContainer.iconBase + "/network/wifi-off.qml"
             opacity: 0
-            visible: dockContainer.expanded || dockContainer.animating
+            visible: dockContainer.wifiAvailable && (dockContainer.expanded || dockContainer.animating)
             property real entryOffset: 0
-            layer.enabled: true
-            layer.samples: 4
             transform: Translate { y: loaderWifi.entryOffset }
 
-            onLoaded: { item.wifiOn = true }
+            Connections {
+                target: dockContainer
+
+                function onWifiAvailableChanged() {
+                    if (dockContainer.wifiAvailable && dockContainer.expanded)
+                        entryWifi.restart()
+                }
+            }
+
+            Image {
+                id: wifiImage
+                anchors.fill: parent
+                source: dockContainer.wifiIconSource
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true
+                smooth: true
+            }
 
             SequentialAnimation {
                 id: entryWifi
@@ -147,7 +264,7 @@ Item {
                 hoverEnabled: true
                 onClicked: {
                     pulseWifi.start()
-                    if (loaderWifi.item) loaderWifi.item.toggle()
+                    dockContainer.toggleWifi()
                 }
             }
         }
@@ -158,13 +275,28 @@ Item {
             width: 42; height: 42
             source: dockContainer.iconBase + "/network/ethernet.qml"
             opacity: 0
-            visible: dockContainer.expanded || dockContainer.animating
+            visible: dockContainer.ethernetAvailable && (dockContainer.expanded || dockContainer.animating)
             property real entryOffset: 0
-            layer.enabled: true
-            layer.samples: 4
             transform: Translate { y: loaderEth.entryOffset }
 
-            onLoaded: { item.connected = true }
+            onLoaded: {
+                if (item)
+                    item.connected = dockContainer.ethernetConnected
+            }
+
+            Connections {
+                target: dockContainer
+
+                function onEthernetAvailableChanged() {
+                    if (dockContainer.ethernetAvailable && dockContainer.expanded)
+                        entryEth.restart()
+                }
+
+                function onEthernetConnectedChanged() {
+                    if (loaderEth.item)
+                        loaderEth.item.connected = dockContainer.ethernetConnected
+                }
+            }
 
             SequentialAnimation {
                 id: entryEth
@@ -202,6 +334,7 @@ Item {
                 onClicked: {
                     pulseEth.start()
                     if (loaderEth.item) loaderEth.item.toggle()
+                    dockContainer.toggleEthernet()
                 }
             }
         }
@@ -214,7 +347,7 @@ Item {
             visible: dockContainer.expanded || dockContainer.animating
             property real entryOffset: 0
             transform: Translate { y: iconSuspend.entryOffset }
-            onClicked: console.log("suspend")
+            onClicked: dockContainer.suspendRequested()
 
             SequentialAnimation {
                 id: entrySuspend
@@ -249,7 +382,7 @@ Item {
             visible: dockContainer.expanded || dockContainer.animating
             property real entryOffset: 0
             transform: Translate { y: iconRestart.entryOffset }
-            onClicked: console.log("restart")
+            onClicked: dockContainer.restartRequested()
 
             SequentialAnimation {
                 id: entryRestart
@@ -284,7 +417,7 @@ Item {
             visible: dockContainer.expanded || dockContainer.animating
             property real entryOffset: 0
             transform: Translate { y: iconPower.entryOffset }
-            onClicked: console.log("power")
+            onClicked: dockContainer.powerRequested()
 
             SequentialAnimation {
                 id: entryPower
