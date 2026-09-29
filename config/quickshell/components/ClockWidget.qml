@@ -11,8 +11,13 @@ Item {
     property real dateHorizontalOffset: 0
     property real dateVerticalOffset: 0
 
+    // Vertical travel added on top of the layout position. Animating this
+    // instead of y keeps the binding above intact, so the clock returns to
+    // its resting place without anyone having to restore it.
+    property real slideOffsetY: 0
+
     x: parent ? (parent.width - width) * horizontalPosition : 0
-    y: parent ? (parent.height - height) * verticalPosition : 0
+    y: (parent ? (parent.height - height) * verticalPosition : 0) + slideOffsetY
 
     property string timeString: ""
     property string dateString: ""

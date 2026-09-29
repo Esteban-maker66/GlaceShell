@@ -52,13 +52,39 @@ A floating vertical action dock triggered by an animated logo.
 | `animating` | `bool` | `false` | True while a transition is running. |
 | `lastClickTime` | `real` | `0` | Timestamp of the last trigger, used to debounce. |
 | `iconBase` | `string` (readonly) | `../assets/icons/QuickDockIcons` | Directory the action glyphs resolve against. |
+| `bridgeUrl` | `string` | `http://127.0.0.1:18765` | Base URL of the network IPC bridge. |
+| `wifiAvailable` | `bool` | `false` | A WiFi device is reported by the bridge. |
+| `wifiConnected` | `bool` | `false` | The WiFi device has an active connection. |
+| `wifiEnabled` | `bool` | `false` | WiFi radio state. |
+| `wifiSignal` | `int` | `0` | Active WiFi signal strength, `0`-`100`. |
+| `ethernetAvailable` | `bool` | `false` | An Ethernet device is reported by the bridge. |
+| `ethernetConnected` | `bool` | `false` | The Ethernet device has an active connection. |
+| `bluetoothFeatureEnabled` | `bool` | `false` | Master switch for the Bluetooth control; disabled during the first integration pass. |
+| `bluetoothEnabled` | `bool` (readonly) | derived | Mirrors `bluetoothFeatureEnabled` for the icon loader. |
+| `wifiBars` | `int` (readonly) | derived | Signal strength as 0-3 bars: `>= 75` is 3, `>= 50` is 2, `>= 25` is 1, else 0. |
+| `wifiIconSource` | `string` (readonly) | derived | Resolves `wifi-<bars>.svg` when enabled and connected, else `wifi-0.svg`. |
+
+### Signals
+| Signal | Emitted when |
+| :--- | :--- |
+| `suspendRequested()` | The suspend action is triggered. |
+| `restartRequested()` | The restart action is triggered. |
+| `powerRequested()` | The power-off action is triggered. |
+
+`config/sddm/main.qml` handles all three through `performPowerAction()`,
+which checks the `sddm` global before calling into the greeter.
 
 ### Features
 - **180° Rotation Trigger**: Rotating animation on the launcher icon with `Easing.OutBack`.
-- **Action Bindings**: Power Off, Reboot, Suspend, and Network/Bluetooth toggles.
+- **Power Actions**: Suspend, restart, and power off are emitted as signals and handled by the SDDM context in `config/sddm/main.qml`.
+- **WiFi Control**: Toggles the WiFi radio through the bridge and selects `wifi-0.svg` through `wifi-3.svg` from the reported signal strength (`0-24`, `25-49`, `50-74`, `75-100`).
+- **Ethernet Control**: Shows the Ethernet icon only when an Ethernet device is present; the connected/disconnected state is reflected by the icon.
 - **Staggered Entry**: Each action fades in and slides from a 15px offset with `Easing.OutCubic`, then settles with a press-scale interaction.
 
-> **Status**: the network and Bluetooth toggles are not connected to the system's actual network.
+### Behavioral Specs
+- Network state is polled every five seconds from `GET /network`; unavailable devices remain hidden.
+- Bluetooth is intentionally hidden and disabled until its control path is implemented and tested.
+- Power signals are ignored outside an SDDM context, so the reusable component remains safe in previews.
 
 ---
 
@@ -107,10 +133,17 @@ Time and date with a typographic hierarchy.
 | `verticalPosition` | `real` | `0.5` | Normalized Y position on the parent. |
 | `dateHorizontalOffset` | `real` | `0` | Extra X offset applied to the date line. |
 | `dateVerticalOffset` | `real` | `0` | Extra Y offset applied to the date line. |
+| `slideOffsetY` | `real` | `0` | Vertical travel added on top of the layout position. |
 | `timeString` | `string` | `""` | 12-hour time, `hh:mm`. Written by the internal timer. |
 | `dateString` | `string` | `""` | Localized `weekday, day month`. Written by the internal timer. |
 
 ### Behavioral Specs
+- **`slideOffsetY` exists so `y` can be animated without breaking its binding.**
+  `y` is bound to `verticalPosition`; animating `y` directly would destroy that
+  binding and leave the clock stranded off-screen. Adding the offset as a
+  separate property keeps the layout binding intact, so the clock returns to
+  its resting place on its own when the offset returns to 0.
+- Used by the login transition to fly the clock up and out of the screen.
 - Updates every second through an internal `Timer` and formats the time and date with the component's built-in English day and month names.
 - Reads the system date through `new Date()`, so no bridge round-trip is needed.
 
@@ -207,16 +240,50 @@ Full-screen shader that renders the wallpaper.
 ---
 
 ## 10. Login Prompt (`LoginPrompt.qml`)
+The glass panel revealed by the login transition, drawn above the blur layer so
+it stays sharp while the backdrop is diffused.
 
-> **Status**: skeleton. The component exposes an empty `Item` and does not yet
-> implement credential entry. Transitions between the main view and the prompt
-> are already wired in `config/sddm/main.qml`.
+### Properties
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `ready` | `bool` (readonly) | derived | `opacity > 0.01`. Lets callers tell a settled prompt from one still fading in. |
+
+### Behavioral Specs
+- The panel itself never fades or moves; `config/sddm/main.qml` drives `opacity`.
+  Keeping the animation in the caller means the whole view shares one timeline.
+- Uses a `#1b1b1b3d` glass fill with a `#ffffff33` border, consistent with the
+  tokens in `STYLE.md`, plus a `MultiEffect` drop shadow so the panel separates
+  from the blurred wallpaper.
+
+> **Status**: visual shell only. SDDM themes authenticate through its login
+> capability (`UserModel`); that integration is not implemented, so the panel
+> has no credential fields and nothing here submits anything.
 
 ---
 
 ## 11. General Blur (`GeneralBlur.qml`)
+Native Gaussian blur applied to another item's content. Registered in `qmldir`
+from the start, but only now has an implementation.
 
-> **Status**: empty file. Reserved for the background blur effect.
+### Properties
+| Property | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `target` | `Item` | `null` | Item whose content gets blurred. Usually the layer holding the backdrop. |
+| `radius` | `real` | `48` | Maximum blur radius in px. `amount` scales between 0 and this. |
+| `amount` | `real` | `0` | `0` = no blur, `1` = full `radius`. Animate this. |
+
+### Behavioral Specs
+- **The target keeps its own visibility.** `MultiEffect` renders the captured,
+  blurred result on top of the target, and because that output is opaque it
+  covers the sharp original. This avoids hiding the source, whose capture
+  behaviour when `visible: false` is not something to rely on — and it keeps
+  the target's input working, which matters because `uiLayer` carries the
+  click-to-collapse `MouseArea`.
+- **Zero cost when inactive.** `visible: amount > 0.001` skips the effect
+  entirely instead of drawing a transparent pass over the whole screen.
+- Rendered by Qt's native effect backend, which compiles to a GLSL fragment
+  shader and runs on the GPU. A hand-written `ShaderEffect` would add code,
+  lose the hardware path, and gain nothing visually.
 
 ---
 
@@ -234,6 +301,9 @@ Full-screen shader that renders the wallpaper.
 | :--- | :--- | :--- | :--- |
 | `GET` | `/state` | Volume, mute state, and bridge availability. | `topVolumeBar` |
 | `GET` | `/battery` | Charge level and charging state from `/sys/class/power_supply`. | `BatteryPill` |
+| `GET` | `/network` | WiFi/Ethernet device, connection, radio, and signal state. | `QuickDock` |
 | `POST` | `/set` | Sets the default sink volume. | `topVolumeBar` |
 | `POST` | `/mute` | Toggles mute. | `topVolumeBar` |
 | `POST` | `/keyboard` | Changes the keyboard layout. | `KeyLangBtn` |
+| `POST` | `/network` | Toggles a network device (WiFi, Ethernet, Bluetooth). | `QuickDock` |
+| `POST` | `/network` | Applies `toggleWifi` or `toggleEthernet`. | `QuickDock` |
